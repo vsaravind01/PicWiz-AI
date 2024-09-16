@@ -13,10 +13,17 @@ ChatterChum is an end to end AI-powered photo management tool similar to Google 
 #### Assumptions Made
 - Scene detection is based on the location of the photo and not exactly the literal scene in the photo. (Eg: A photo taken at a beach will be tagged as a beach photo, but a birthday party photo taken at a beach will still be tagged as a beach photo.)
 
+
+#### Future Scope
+- [ ] **Improvised Query Processing**: Implement a more advanced query processing system to handle complex queries.
+- [ ] **Auto Trigger Events**: Automatically trigger events based on the user's query, like creating an album, etc. (Partially implemented)
+- [ ] **Smooth User Experience**: Implement a more user-friendly interface to interact with the system.
+
 ## Tech Stack
 - **Backend**: FastAPI
 - **Database**: MongoDB + Qdrant
-- **AI Models**: Vision Transformers, Detectron, FaceNet, CLIP, Cohere(LLM), WaveMix, etc.
+- **AI Models**: Vision Transformers, Detectron, FaceNet, CLIP, Cohere(LLM), WaveMix
+- **Frontend**: ReactJS
 
 ## Architecture
 ![Architecture](./assets/chatterchum-arch.png)
