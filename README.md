@@ -24,6 +24,7 @@ ChatterChum is an end to end AI-powered photo management tool similar to Google 
 - **Database**: MongoDB + Qdrant
 - **AI Models**: Vision Transformers, Detectron, FaceNet, CLIP, Cohere(LLM), WaveMix
 - **Frontend**: ReactJS
+- **File Storage**: Google Cloud Storage
 
 ## Architecture
 ![Architecture](./assets/chatterchum-arch.png)
@@ -39,6 +40,15 @@ git clone https://github.com/vsaravind01/ChatterChum.git
 pip install -r requirements.txt
 ```
 
+## Configuration
+1. Create a `.env` file in the root directory and add the following configurations
+```bash
+export SECRET_KEY=<secret_key>
+export ALGORITHM=<algorithm>
+export COHERE_API_KEY=<API_KEY>
+
+```
+
 ## Usage
 1. Run the application
 ```bash
@@ -48,3 +58,21 @@ or
 ```bash
 uvicorn app:app --reload --port 8000 --host 0.0.0.0
 ```
+
+## Running the Inference Pipeline
+1. Run the face clustering pipeline
+```bash
+python ./pipeline/face_cluster_runner.py --user-id <user_id> --bucket chatterchum-photo-store --init_max_size 3 --threshold 0.72 --min_community_size 2 --nproc 3 --num_workers 3
+```
+2. Run the object detection pipeline
+```bash
+python ./pipeline/object_detection_runner.py --user-id <user_id> --bucket chatterchum-photo-store --nproc 3 --num_workers 3
+```
+3. Run the scene detection pipeline
+```bash
+python ./pipeline/scene_detection_runner.py --user-id <user_id> --bucket chatterchum-photo-store --nproc 3 --num_workers 3
+```
+
+
+## API Documentation
+- **Swagger UI**: http://localhost:8000/docs
