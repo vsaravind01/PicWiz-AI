@@ -1,5 +1,17 @@
-from models.user import User
-from models.photo import Photo
-from models.album import Album
-from models.face import Face
-from models.person import Person
+from models.tables import (
+    User,
+    Photo,
+    Album,
+    Face,
+    Person,
+)
+from models.response_models import (
+    UserResponse,
+    PhotoResponse,
+    FaceResponse,
+    PersonResponse,
+)
+from models.link_tables import (
+    PersonPhotoLink,
+    PhotoAlbumLink,
+)
