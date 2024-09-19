@@ -1,11 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from db.sql_db_manager import SqlDatabaseManager, create_db_and_tables
+from contextlib import asynccontextmanager
 from routers import main_router
 import logging
 
 logging.getLogger("passlib").setLevel(logging.ERROR)
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db_manager = SqlDatabaseManager()
+    engine = db_manager.engine()
+    create_db_and_tables(engine)
+    yield
+    engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(main_router)
 

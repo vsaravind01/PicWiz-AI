@@ -1,7 +1,8 @@
-from typing import Any
-from qdrant_client import QdrantClient, models
+import uuid
 
-from db.config import QDRANT_PORT, QDRANT_HOST, QdrantCollections
+from qdrant_client import models, QdrantClient
+
+from db.config import QDRANT_HOST, QDRANT_PORT, QdrantCollections
 
 
 class QdrantConnection:
@@ -53,12 +54,14 @@ class QdrantConnection:
                 response.append(payload)
         return response
 
-    def upsert_many(self, ids: list[str], data: list[dict], embeddings: list[list[float]]) -> None:
+    def upsert_many(
+        self, ids: list[uuid.UUID], data: list[dict], embeddings: list[list[float]]
+    ) -> None:
         self._client.upsert(
             collection_name=self.collection_name,
             points=[
                 models.PointStruct(
-                    id=id,
+                    id=str(id),
                     payload=payload,
                     vector=embedding,
                 )
