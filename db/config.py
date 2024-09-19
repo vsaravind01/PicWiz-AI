@@ -1,9 +1,10 @@
 import os
 from enum import Enum
-from models import User, Photo, Album, Face, Person
+
+from models import Album, Face, Person, Photo, User
 
 
-class MongoCollections(Enum):
+class Entity(Enum):
     USER = "users"
     ALBUM = "albums"
     PHOTO = "photos"
@@ -11,15 +12,15 @@ class MongoCollections(Enum):
     FACE = "face"
 
     def get_class(self):
-        if self == MongoCollections.USER:
+        if self == Entity.USER:
             return User
-        elif self == MongoCollections.PHOTO:
+        elif self == Entity.PHOTO:
             return Photo
-        elif self == MongoCollections.ALBUM:
+        elif self == Entity.ALBUM:
             return Album
-        elif self == MongoCollections.PERSON:
+        elif self == Entity.PERSON:
             return Person
-        elif self == MongoCollections.FACE:
+        elif self == Entity.FACE:
             return Face
         else:
             raise ValueError("Invalid collection")
