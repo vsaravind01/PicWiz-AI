@@ -1,3 +1,4 @@
+from typing import Any, Optional
 import uuid
 from abc import ABC, abstractmethod
 
@@ -23,9 +24,7 @@ class BaseConnection(ABC):
         pass
 
     @abstractmethod
-    def find(
-        self, query: any, fields: list[str] = None, limit: int = 100, page: int = 0
-    ):
+    def find(self, query: dict, fields: Optional[dict] = None, limit: int = 100, page: int = 0):
         pass
 
     @abstractmethod
@@ -33,15 +32,15 @@ class BaseConnection(ABC):
         pass
 
     @abstractmethod
-    def count(self, query: any):
+    def count(self, query: dict):
         pass
 
     @abstractmethod
-    def update(self, id: uuid.UUID, data: any, override_set: bool = False):
+    def update(self, id: uuid.UUID, data: dict, override_set: bool = False):
         pass
 
     @abstractmethod
-    def delete(self, query: any):
+    def delete(self, query: dict):
         pass
 
 
@@ -71,7 +70,7 @@ class DBConnection(BaseConnection):
     def insert_many(self, data: list[dict]):
         raise NotImplementedError
 
-    def find(self, query: any, fields: dict = None, limit: int = 100, page: int = 0):
+    def find(self, query: dict, fields: Optional[dict] = None, limit: int = 100, page: int = 0):
         raise NotImplementedError
 
     def find_by_id(self, id: uuid.UUID):

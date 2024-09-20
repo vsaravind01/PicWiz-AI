@@ -50,28 +50,46 @@ class MongoConnection(DBConnection):
 
     def find(
         self,
-        query: Any,
+        query: dict,
         fields: Optional[dict] = None,
         limit: int = 100,
         page: int = 0,
     ) -> list[dict]:
         skip = page * limit
-        return list(self.collection.find(query, fields).skip(skip).limit(limit))
+        converted_query = self._convert_uuid_in_query(query)
+        return list(self.collection.find(converted_query, fields).skip(skip).limit(limit))
 
-    def find_by_id(self, id: uuid.UUID) -> dict:
-        return self.collection.find_one({"id": id})
+    def find_by_id(self, id: uuid.UUID) -> Optional[dict]:
+        return self.collection.find_one({"id": str(id)})
 
     def count(self, query: dict) -> int:
-        return self.collection.count_documents(query)
+        converted_query = self._convert_uuid_in_query(query)
+        return self.collection.count_documents(converted_query)
 
-    def update(self, query: Any, data: dict, override_set: bool = False) -> dict:
+    def update(self, query: dict, data: dict, override_set: bool = False) -> dict:
+        converted_query = self._convert_uuid_in_query(query)
+        for key, value in data.items():
+            if isinstance(value, uuid.UUID):
+                data[key] = str(value)
+
         if override_set:
-            return self.collection.find_one_and_update(
-                query, data, return_document=True
-            )
+            return self.collection.find_one_and_update(converted_query, data, return_document=True)
         return self.collection.find_one_and_update(
-            query, {"$set": data}, return_document=True
+            converted_query, {"$set": data}, return_document=True
         )
 
     def delete(self, query: dict) -> dict:
-        return self.collection.find_one_and_delete(query)
+        converted_query = self._convert_uuid_in_query(query)
+        return self.collection.find_one_and_delete(converted_query)
+
+    @staticmethod
+    def _convert_uuid_in_query(query: dict) -> dict:
+        converted_query = {}
+        for key, value in query.items():
+            if isinstance(value, uuid.UUID):
+                converted_query[key] = str(value)
+            elif isinstance(value, dict):
+                converted_query[key] = MongoConnection._convert_uuid_in_query(value)
+            else:
+                converted_query[key] = value
+        return converted_query

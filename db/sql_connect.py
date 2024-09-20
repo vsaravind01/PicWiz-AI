@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import Any, Literal, Union
+from typing import Any, Literal, Optional, Union
 
 from sqlalchemy import Delete, Select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import InstrumentedAttribute
-from sqlalchemy.sql.dml import ReturningDelete
-from sqlmodel import select, delete, func
+from sqlmodel import Session, select, delete, func
 
 from db import DBConnection, SqlDatabaseManager
 from db.base_db_connect import DBDuplicateKeyError
@@ -73,19 +72,18 @@ class SqlConnection(DBConnection):
                 values = set(fields.values())
                 if values - {0, 1}:
                     raise ValueError("Fields values should be either 0 or 1")
-                columns_to_select = (
-                    [
-                        getattr(self.model, key)
-                        for key, value in fields.items()
-                        if value == 1
+                if 1 in values:
+                    columns_to_select = [
+                        getattr(self.model, key) for key, value in fields.items() if value == 1
                     ]
-                    if 1 in values
-                    else [
+                elif 0 in values:
+                    columns_to_select = [
                         getattr(self.model, key)
                         for key in model_columns
-                        if fields.get(key, 1) == 0
+                        if key not in fields or fields[key] != 0
                     ]
-                )
+                else:
+                    columns_to_select = [getattr(self.model, key) for key in model_columns]
             else:
                 columns_to_select = [getattr(self.model, key) for key in model_columns]
 
@@ -122,11 +120,11 @@ class SqlConnection(DBConnection):
     def find(
         self,
         query: dict,
-        fields: dict = None,
+        fields: dict = dict(),
         limit: int = 100,
         page: int = 0,
     ):
-        columns, statement = self.generate_statement_from_query(query, fields)
+        columns, statement = self.generate_statement_from_query(query, fields, "select")
         statement.limit(limit).offset(page * limit)
 
         with SqlDatabaseManager() as db:
@@ -134,12 +132,14 @@ class SqlConnection(DBConnection):
 
         result = []
         for item in temp:
-            result.append(
-                {column.name: getattr(item, column.name) for column in columns}
-            )
+            if isinstance(item, list):
+                print(item)
+                result.append(item)
+            else:
+                result.append({column.name: getattr(item, column.name) for column in columns})
         return result
 
-    def find_by_id(self, id: uuid.UUID):
+    def find_by_id(self, id: uuid.UUID) -> Optional[dict]:
         with SqlDatabaseManager() as db:
             return db.get(self.model, id)
 
@@ -169,3 +169,7 @@ class SqlConnection(DBConnection):
     def execute(statement: Any):
         with SqlDatabaseManager() as db:
             return db.exec(statement)
+
+    @property
+    def session(self) -> Session:
+        return SqlDatabaseManager().session()

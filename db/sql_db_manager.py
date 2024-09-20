@@ -1,20 +1,11 @@
-import os
+from typing import Generator
 
 from sqlalchemy.engine import Engine
 from sqlalchemy_utils import create_database, database_exists
 from sqlmodel import create_engine, Session, SQLModel
 
 from settings import Settings
-
-DATABASE_NAME = os.getenv("DATABASE_NAME", "chatterchum")
-
-DATABASE_URI_MAP = {
-    "sqlite": os.getenv("DATABASE_URL", f"sqlite:///./{DATABASE_NAME}.db"),
-    "postgres": os.getenv(
-        "DATABASE_URL",
-        f"postgresql+psycopg2://vsaravind:pass@localhost/{DATABASE_NAME}",
-    ),
-}
+from db.config import SQL_URI_MAP
 
 
 def create_db_and_tables(engine: Engine):
@@ -35,9 +26,10 @@ class DBError(Exception):
 
 
 class SqlDatabaseManager(metaclass=SingletonDBManager):
-    settings = Settings()
+    settings = Settings().db
+
     if settings.db_type == "sql":
-        database_url = DATABASE_URI_MAP["postgres"]
+        database_url = SQL_URI_MAP["postgres"]
         if not database_exists(database_url):
             create_database(database_url)
     pool_size = settings.pool_size
@@ -67,9 +59,10 @@ class SqlDatabaseManager(metaclass=SingletonDBManager):
         return self._session
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._session.close()
+        if self._session:
+            self._session.close()
 
 
-def get_db() -> Session:
+def get_db() -> Generator[Session, None, None]:
     with SqlDatabaseManager() as db:
         yield db

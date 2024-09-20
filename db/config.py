@@ -37,3 +37,13 @@ class QdrantCollections(Enum):
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
+
+
+SQL_DB_NAME = os.getenv("DATABASE_NAME", "chatterchum")
+SQL_URI_MAP = {
+    "sqlite": os.getenv("DATABASE_URL", f"sqlite:///./{SQL_DB_NAME}.db"),
+    "postgres": os.getenv(
+        "DATABASE_URL",
+        f"postgresql+psycopg2://vsaravind:pass@localhost/{SQL_DB_NAME}",
+    ),
+}
