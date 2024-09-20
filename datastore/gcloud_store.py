@@ -1,51 +1,54 @@
 from google.cloud import storage
-from typing import BinaryIO, Optional
+from typing import Optional, BinaryIO, List
+from datastore import BaseDataStore
 from models import User
+from datetime import timedelta
 
 
-class GCloudStore:
-    def __init__(self, bucket_name: str, user: User):
+class GCloudStore(BaseDataStore):
+    def __init__(self, user: User, bucket_name: str, project_id: str):
+        super().__init__(user)
         self.bucket_name = bucket_name
-        self.client = storage.Client()
+        self.client = storage.Client(project=project_id)
+        self.bucket = self.client.bucket(self.bucket_name)
 
-        self.user = user
+    def upload(self, file: BinaryIO, file_id: str, file_extension: str, content_type: str) -> str:
+        full_path = self.get_full_path(file_id, file_extension)
+        blob = self.bucket.blob(full_path)
+        blob.upload_from_file(file, content_type=content_type)
+        return full_path
 
-        if not self.client.lookup_bucket(bucket_name):
-            self.client.create_bucket(bucket_name)
+    def download(self, file_id: str) -> tuple[Optional[bytes], Optional[str]]:
+        blob = self.get_blob(file_id)
+        if not blob:
+            return None, None
+        content = blob.download_as_bytes()
+        file_extension = blob.name.split(".")[-1]
+        return content, f"image/{file_extension}"
 
-        self.bucket = self.client.bucket(bucket_name)
+    def get_file_path(self, file_id: str) -> str:
+        blob = self.get_blob(file_id)
+        if not blob:
+            return ""
+        return blob.generate_signed_url(
+            version="v4", expiration=timedelta(minutes=15), method="GET"
+        )
 
-    def upload(self, file: BinaryIO, id: str, **kwargs):
-        blob = self.bucket.blob(self.get_blob_id(id))
-        blob.upload_from_file(file, **kwargs)
-        return self.get_blob_uri(id)
+    def get_file_paths(self, file_ids: List[str]) -> List[str]:
+        return [self.get_file_path(file_id) for file_id in file_ids]
 
-    def download(self, id: str) -> Optional[tuple[bytes, str]]:
-        blobs = self.bucket.list_blobs(prefix=self.get_blob_id(id))
-        blobs = list(blobs)
-        if not blobs:
-            return None
-        blob_id = blobs[0].name
-        content_type = blobs[0].content_type
-        blob = self.bucket.blob(blob_id)
-        return blob.download_as_bytes(), content_type
+    def delete(self, file_id: str) -> bool:
+        blob = self.get_blob(file_id)
+        if blob:
+            blob.delete()
+            return True
+        return False
 
-    def delete(self, id):
-        blob = self.bucket.blob(self.get_blob_id(id))
-        blob.delete()
+    def list_files(self) -> List[str]:
+        return [
+            blob.name.split("/")[-1] for blob in self.bucket.list_blobs(prefix=f"{self.user.id}/")
+        ]
 
-    def list_files(self) -> list[str]:
-        files = []
-        user_id = self.user.id
-        for blob in self.bucket.list_blobs(prefix=user_id):
-            files.append(blob.name)
-        return files
-
-    def get_blob(self, id):
-        return self.bucket.blob(self.get_blob_id(id))
-
-    def get_blob_uri(self, id) -> str:
-        return f"gs://{self.bucket_name}/{self.user.id}/{id}"
-
-    def get_blob_id(self, id) -> str:
-        return f"{self.user.id}/{id}"
+    def get_blob(self, file_id: str):
+        blobs = list(self.bucket.list_blobs(prefix=f"{self.user.id}/{file_id}"))
+        return blobs[0] if blobs else None
