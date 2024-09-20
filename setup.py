@@ -227,9 +227,9 @@ def show_settings(
 @app.command()
 def setup():
     """Perform all setups in a single window."""
-    setup_db()
-    setup_storage()
-    setup_app()
+    setup_db(interactive=True)
+    setup_storage(interactive=True)
+    setup_app(interactive=True)
 
 
 if __name__ == "__main__":
