@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy import Engine
 
 from db import SqlDatabaseManager
@@ -8,7 +9,7 @@ from settings import Settings
 from types_ import DBType
 
 
-def init_db() -> Engine:
+def init_db() -> Optional[Engine]:
     settings = Settings().db
     if settings.db_type == DBType.SQL:
         db_manager = SqlDatabaseManager()
