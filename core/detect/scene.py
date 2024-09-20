@@ -1,4 +1,3 @@
-from matplotlib.pyplot import cla
 import torch
 import numpy as np
 from torchvision import transforms
@@ -42,6 +41,7 @@ class SceneDetector(BaseDetector):
     def detect(
         self, image: ImageData, with_return: bool = False
     ) -> Optional[list[tuple[str, float]]]:
+        image.image.seek(0)
         input_img = tf(image.image).unsqueeze(0).to("cpu")
 
         with torch.no_grad():

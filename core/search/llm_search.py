@@ -2,16 +2,13 @@ import os
 import json
 
 import cohere
-from db.mongo_connect import MongoConnection, MongoCollections
+from db.mongo_connect import MongoConnection, Entity
 from db.qdrant_connect import QdrantConnection, QdrantCollections
 from core.embed.clip import get_clip_embedding
-from models.person import PersonResponse
-from models.photo import Photo
+from models import Photo, User
+from models import PersonResponse
 
 from enum import Enum
-
-from models import person, photo
-from models.user import User
 
 COHERE_API_KEY = os.environ.get("COHERE_API_KEY")
 
@@ -74,7 +71,9 @@ class CohereSearch:
         self.client = cohere.Client(api_key=COHERE_API_KEY)
 
     def search(
-        self, query: str, prompt_type: FewshotPromptOptions = FewshotPromptOptions.GENERAL_QUERY
+        self,
+        query: str,
+        prompt_type: FewshotPromptOptions = FewshotPromptOptions.GENERAL_QUERY,
     ) -> dict:
         prompt = prompt_type.generate_prompt(query)
         response = self.client.chat(model=self.model, message=prompt, response_format={"type": "json_object"})  # type: ignore
@@ -98,7 +97,7 @@ class CohereSearch:
         seen = set()
         results = [x for x in results if not (x["id"] in seen or seen.add(x["id"]))]
 
-        with MongoConnection(collection=MongoCollections.PERSON) as conn:
+        with MongoConnection(entity=Entity.PERSON) as conn:
             persons_response = []
             for name in person_names:
                 response = conn.find_many(
@@ -107,17 +106,21 @@ class CohereSearch:
                 for res in response:
                     persons_response.append(PersonResponse(**res).model_dump())
 
-        with MongoConnection(collection=MongoCollections.PHOTO) as conn:
+        with MongoConnection(entity=Entity.PHOTO) as conn:
             obj_response = []
             if objects:
-                re_q = [{"entities": {"$regex": term, "$options": "i"}} for term in objects]
+                re_q = [
+                    {"entities": {"$regex": term, "$options": "i"}} for term in objects
+                ]
                 photos = conn.find_many({"$or": re_q, "owner": self.user.id})
                 for photo in photos:
                     obj_response.append(Photo(**photo).model_dump())
 
             place_response = []
             if places:
-                re_q = [{"entities": {"$regex": term, "$options": "i"}} for term in places]
+                re_q = [
+                    {"entities": {"$regex": term, "$options": "i"}} for term in places
+                ]
                 photos = conn.find_many({"$or": re_q, "owner": self.user.id})
                 for photo in photos:
                     place_response.append(Photo(**photo).model_dump())
