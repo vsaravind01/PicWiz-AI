@@ -1,4 +1,5 @@
-from core.detect.object import ObjectDetector
+from core.loader.image_loader import ImageLoader
+from core.detect.scene import SceneDetector
 from db.mongo_connect import MongoConnection
 from db.sql_connect import SqlConnection
 from models import Photo
@@ -8,35 +9,36 @@ from sqlalchemy import func, update
 from typing import Dict, Any
 
 
-class ObjectDetectionRunner(PipelineRunner):
+class SceneDetectionRunner(PipelineRunner):
     def __init__(self):
-        super().__init__("object_detection", "objects", [Entity.PHOTO])
-        self.detector = ObjectDetector()
+        super().__init__("scene_detection", "scene", [Entity.PHOTO])
+        self.detector = SceneDetector()
 
     def preprocess_func(self, img):
         self.detector.detect(img, True)
-        self.logger.info(f"Objects detected for image {img.id}")
+        self.logger.info(f"Scenes detected for image {img.id}")
 
-    def execute(self, loader, **kwargs):
-        result = {}
-        for img_id, img in loader.image_data.items():
-            result[img_id] = img.objects
-        return result
+    def execute(self, loader: ImageLoader, **kwargs) -> Dict[str, Any]:
+        results = {}
+        for img_id, img in loader.iter():
+            results[img_id] = img.scenes
+
+        return results
 
     def _update_sql(self, conn: SqlConnection, task_results: Dict[str, Any], entity: Entity):
         session = conn.session
-        for img_id, objects in task_results.items():
-            objs = []
-            for obj, score in objects:
-                obj = obj.replace("_", " ").lower()
-                objs.append(obj)
+        for img_id, scenes in task_results.items():
+            scs = []
+            for scene, score in scenes:
+                scene = scene.replace("_", " ").lower()
+                scs.append(scene)
 
             stmt = (
                 update(Photo)
                 .where(Photo.id == img_id)
-                .values(objects=objects)
-                .values(entities=func.array_cat(Photo.entities, objs))
-                .values(objects_processed=True)
+                .values(scenes=scenes)
+                .values(entities=func.array_cat(Photo.entities, scs))
+                .values(scene_processed=True)
                 .returning(Photo)
             )
 
@@ -46,20 +48,19 @@ class ObjectDetectionRunner(PipelineRunner):
                 self.logger.error(f"Failed to update {img_id}")
 
         session.commit()
-        session.close()
 
     def _update_mongo(self, conn: MongoConnection, task_results: Dict[str, Any], entity: Entity):
-        for img_id, objects in task_results.items():
-            objs = []
-            for obj, score in objects:
-                obj = obj.replace("_", " ").lower()
-                objs.append(obj)
+        for img_id, scenes in task_results.items():
+            scs = []
+            for scene, score in scenes:
+                scene = scene.replace("_", " ").lower()
+                scs.append(scene)
 
             result = conn.collection.update_one(
                 {"id": img_id},
                 {
-                    "$set": {"objects": objects, "objects_processed": True},
-                    "$push": {"entities": {"$each": objs}},
+                    "$set": {"scenes": scenes, "scenes_processed": True},
+                    "$push": {"entities": {"$each": scs}},
                 },
             )
 
@@ -72,5 +73,5 @@ class ObjectDetectionRunner(PipelineRunner):
 
 
 if __name__ == "__main__":
-    runner = ObjectDetectionRunner()
+    runner = SceneDetectionRunner()
     runner.run()
