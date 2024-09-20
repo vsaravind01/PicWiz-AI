@@ -2,11 +2,11 @@ import uuid
 from typing import Optional, Annotated
 
 from pydantic import EmailStr
-from sqlalchemy import ARRAY
 from sqlmodel import (
     SQLModel,
     Field,
     Relationship,
+    Enum,
     Column,
     Float,
     Integer,
@@ -15,7 +15,8 @@ from sqlmodel import (
 )
 from sqlalchemy.dialects import postgresql
 from passlib.context import CryptContext
-from models.link_tables import PersonPhotoLink, PhotoAlbumLink
+from models.link_tables import PhotoAlbumLink
+from types_ import DatastoreType
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -59,8 +60,11 @@ class Face(SQLModel, table=True):
     photo_id: uuid.UUID = Field(foreign_key="photo.id")
     person_id: Optional[uuid.UUID] = Field(default=None, foreign_key="person.id")
 
-    person: "Person" = Relationship(back_populates="faces")
+    person: Optional["Person"] = Relationship(back_populates="faces")
     photo: "Photo" = Relationship(back_populates="faces")
+
+    def __hash__(self):
+        return hash(self.id)
 
     class Config:
         unique_fields = ("id",)
@@ -70,14 +74,15 @@ class Person(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: Optional[str] = Field(default=None)
 
-    centroid: list[float] = Field(sa_column=Column(ARRAY(Float), nullable=False))
+    centroid: list[float] = Field(sa_column=Column(postgresql.ARRAY(Float()), nullable=False))
 
     owner_id: uuid.UUID = Field(nullable=False, foreign_key="user.id")
 
-    photos: list["Photo"] = Relationship(
-        back_populates="people", link_model=PersonPhotoLink
-    )
+    photos: list["Photo"] = Relationship(back_populates="people", link_model=Face)
     faces: list[Face] = Relationship(back_populates="person")
+
+    def __hash__(self):
+        return hash(self.id)
 
     class Config:
         unique_fields = ("id",)
@@ -89,6 +94,7 @@ class Photo(SQLModel, table=True):
     faces_processed: bool = Field(default=False)
     objects_processed: bool = Field(default=False)
     scene_processed: bool = Field(default=False)
+    datastore: DatastoreType = Field(sa_column=Column(Enum(DatastoreType), nullable=False))
 
     objects: list[tuple[str, float]] = Field(
         default_factory=lambda: [], sa_column=Column(JSON)
@@ -103,9 +109,7 @@ class Photo(SQLModel, table=True):
     owner_id: uuid.UUID = Field(nullable=False, foreign_key="user.id")
 
     owner: User = Relationship(back_populates="photos")
-    people: list[Person] = Relationship(
-        back_populates="photos", link_model=PersonPhotoLink
-    )
+    people: list[Person] = Relationship(back_populates="photos", link_model=Face)
     faces: list[Face] = Relationship(back_populates="photo")
     albums: list["Album"] = Relationship(
         back_populates="photos", link_model=PhotoAlbumLink

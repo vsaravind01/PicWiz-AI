@@ -3,6 +3,8 @@ from sqlmodel import SQLModel, Field
 from pydantic import EmailStr
 from typing import Optional
 
+from models import Photo
+
 
 class UserResponse(SQLModel, table=False):
     id: uuid.UUID
@@ -30,9 +32,10 @@ class FaceResponse(SQLModel, table=False):
 
 class PersonResponse(SQLModel, table=False):
     id: uuid.UUID
+    owner_id: uuid.UUID
     name: Optional[str] = Field(default=None)
     faces: list[str] = Field(default_factory=lambda: [])
-    images: list[str] = Field(default_factory=lambda: [])
+    photos: list[Photo] = Field(default_factory=lambda: [])
 
 
 class PhotoResponse(SQLModel, table=False):
@@ -42,3 +45,4 @@ class PhotoResponse(SQLModel, table=False):
     objects: list[tuple[str, float]]
     scenes: list[tuple[str, float]]
     entities: list[str]
+    datastore: str
