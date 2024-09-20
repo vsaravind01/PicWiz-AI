@@ -9,13 +9,13 @@ from PIL import Image
 from sqlmodel import select
 
 from core.embed.clip import get_clip_embedding
-from db import DBConnection, MongoConnection, SqlConnection
+from datastore.base_store import BaseDataStore
+from db import DBConnection, MongoConnection, SqlConnection, QdrantConnection
 from db.config import Entity, QdrantCollections
-from db.qdrant_connect import QdrantConnection
 from models import Face, Photo, PhotoResponse
 from routers.dependencies.auth_jwt import get_current_user
-from routers.dependencies.db_dependencies import get_db_connection
-from routers.v1.utils import init_gcloud_store
+from routers.dependencies.db_dependency import get_db_connection
+from routers.dependencies.datastore_dependency import get_datastore
 
 router = APIRouter(prefix="/photo", tags=["photo"])
 
@@ -25,21 +25,28 @@ async def upload_photo(
     file: UploadFile = File(...),
     user=Depends(get_current_user),
     db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
     if not file.content_type or not file.content_type.startswith("image"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="File must be an image"
         )
 
-    datastore = init_gcloud_store(user)
-
     id = uuid4()
     ext = file.content_type.split("/")[-1]
 
     blob_uri = datastore.upload(
-        file=file.file, id=f"{id}.{ext}", content_type=file.content_type, rewind=True
+        file=file.file,
+        file_id=str(id),
+        file_extension=ext,
+        content_type=file.content_type,
     )
-    photo = Photo(id=id, uri=blob_uri, owner_id=user.id)
+    photo = Photo(
+        id=id,
+        uri=blob_uri,
+        owner_id=user.id,
+        datastore=getattr(datastore, "datastore_type"),
+    )
 
     with db_conn(entity=Entity.PHOTO) as conn:
         conn.insert(photo.model_dump())
@@ -54,9 +61,10 @@ async def upload_photo(
 
 @router.post("/m", response_model=list[Photo], status_code=status.HTTP_201_CREATED)
 async def bulk_upload_photos(
-    files: list[UploadFile] = File(...), user=Depends(get_current_user)
+    files: list[UploadFile] = File(...),
+    db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
-    datastore = init_gcloud_store(user)
     photos = []
     for file in files:
         if not file.content_type or not file.content_type.startswith("image"):
@@ -69,22 +77,23 @@ async def bulk_upload_photos(
 
         blob_uri = datastore.upload(
             file=file.file,
-            id=f"{id}.{ext}",
+            file_id=str(id),
+            file_extension=ext,
             content_type=file.content_type,
-            rewind=True,
         )
         photo = Photo(
             id=id,
             uri=blob_uri,
-            owner=user.id,
+            owner_id=datastore.user.id,
+            datastore=getattr(datastore, "datastore_type"),
         )
 
         photos.append(photo)
 
     for file in files:
-        file.file.seek(0)
+        await file.seek(0)
 
-    with MongoConnection(entity=Entity.PHOTO) as conn:
+    with db_conn(entity=Entity.PHOTO) as conn:
         conn.insert_many([photo.model_dump() for photo in photos])
 
     with QdrantConnection(collection=QdrantCollections.CLIP_EMBEDDINGS) as conn:
@@ -101,10 +110,18 @@ async def bulk_upload_photos(
 
 
 @router.get("/search", response_model=list[Photo], status_code=status.HTTP_200_OK)
-async def search_photos(query: str, user=Depends(get_current_user)):
-    with MongoConnection(entity=Entity.PHOTO) as conn:
+async def search_photos(
+    query: str,
+    db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
+):
+    with db_conn(entity=Entity.PHOTO) as conn:
         photos = conn.find_many(
-            {"$text": {"$search": query}, "owner_id": user.id},
+            {
+                "$text": {"$search": query},
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            },
         )
 
     return photos
@@ -113,12 +130,16 @@ async def search_photos(query: str, user=Depends(get_current_user)):
 @router.get("/{photo_id}", response_model=PhotoResponse, status_code=status.HTTP_200_OK)
 async def get_photo(
     photo_id: uuid.UUID,
-    user=Depends(get_current_user),
     db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
     with db_conn(entity=Entity.PHOTO) as conn:
         photo = conn.find(
-            {"id": photo_id, "owner_id": user.id},
+            {
+                "id": photo_id,
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            },
         )
 
     if not photo:
@@ -131,39 +152,82 @@ async def get_photo(
 @router.get("/{photo_id}/download", status_code=status.HTTP_200_OK)
 async def download_photo(
     photo_id: uuid.UUID,
-    user=Depends(get_current_user),
     db_conn=Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
     with db_conn(entity=Entity.PHOTO) as conn:
-        photo = conn.find({"id": photo_id, "owner_id": user.id})
+        photo = conn.find(
+            {
+                "id": photo_id,
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            }
+        )
 
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
         )
 
-    datastore = init_gcloud_store(user)
-    blob, content_type = datastore.download(photo_id)  # type: ignore
+    result = datastore.download(str(photo_id))
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found in storage"
+        )
+    content, content_type = result
 
-    return Response(content=blob, media_type=content_type)
+    return Response(content=content, media_type=content_type)
+
+
+@router.get("/{photo_id}/{field}", status_code=status.HTTP_200_OK)
+async def get_photo_path(
+    photo_id: uuid.UUID,
+    field: str,
+    db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
+):
+    if field not in Photo.__annotations__:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Field not found"
+        )
+    with db_conn(entity=Entity.PHOTO) as conn:
+        photo = conn.find(
+            {
+                "id": photo_id,
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            },
+        )
+
+    if not photo:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
+        )
+
+    return photo[0][field]
 
 
 @router.delete("/{photo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_photo(
     photo_id: uuid.UUID,
-    user=Depends(get_current_user),
-    db_conn=Depends(get_db_connection),
+    db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
     with db_conn(entity=Entity.PHOTO) as conn:
-        result = conn.delete({"id": photo_id, "owner_id": user.id})
+        result = conn.delete(
+            {
+                "id": photo_id,
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            }
+        )
 
     if not result:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Photo not found"
         )
 
-    datastore = init_gcloud_store(user)
-    datastore.delete(photo_id)
+    datastore.delete(str(photo_id))
 
 
 @router.get(
@@ -205,10 +269,17 @@ def get_faces_in_photo(
 async def list_photos(
     limit: int = 100,
     page: int = 0,
-    user=Depends(get_current_user),
-    db_conn=Depends(get_db_connection),
+    db_conn: Type[DBConnection] = Depends(get_db_connection),
+    datastore: BaseDataStore = Depends(get_datastore),
 ):
     with db_conn(entity=Entity.PHOTO) as conn:
-        photos = conn.find({"owner_id": user.id}, limit=limit, page=page)
+        photos = conn.find(
+            {
+                "owner_id": datastore.user.id,
+                "datastore": getattr(datastore, "datastore_type"),
+            },
+            limit=limit,
+            page=page,
+        )
 
     return photos

@@ -8,7 +8,7 @@ import jwt
 
 from fastapi import Depends, HTTPException, status, Cookie
 
-from routers.dependencies.db_dependencies import get_db_connection
+from routers.dependencies.db_dependency import get_db_connection
 
 SECRET_KEY = os.environ["SECRET_KEY"]
 ALGORITHM = os.environ["ALGORITHM"]
