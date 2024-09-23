@@ -37,11 +37,13 @@ class User(SQLModel, table=True):
     albums: list["Album"] = Relationship(back_populates="owner")
     people: list["Person"] = Relationship(back_populates="owner")
 
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    updated_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False),
     )
 
     class Config:
@@ -77,11 +79,13 @@ class Face(SQLModel, table=True):
     photo: "Photo" = Relationship(back_populates="faces")
     person: Optional["Person"] = Relationship(back_populates="faces")
 
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    updated_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False),
     )
 
     class Config:
@@ -99,11 +103,12 @@ class Person(SQLModel, table=True):
     faces: list[Face] = Relationship(back_populates="person")
     owner: User = Relationship(back_populates="people")
 
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
     )
 
     class Config:
@@ -134,11 +139,12 @@ class Photo(SQLModel, table=True):
     faces: list[Face] = Relationship(back_populates="photo")
     albums: list["Album"] = Relationship(back_populates="photos", link_model=PhotoAlbumLink)
 
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
     )
 
     def __hash__(self):
@@ -162,11 +168,12 @@ class Album(SQLModel, table=True):
     owner: User = Relationship(back_populates="albums")
     photos: list[Photo] = Relationship(back_populates="albums", link_model=PhotoAlbumLink)
 
-    created_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False),
     )
-    updated_at: datetime = Field(
-        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    updated_at: Optional[datetime] = Field(
+        default=None, sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
     )
 
     class Config:
