@@ -1,0 +1,21 @@
+{
+    "db": {
+        "db_type": "sql",
+        "pool_size": 5,
+        "max_overflow": 10
+    },
+    "storage": {
+        "datastore": "local",
+        "local": {
+            "base_path": "data"
+        },
+        "gcloud": {
+            "bucket_name": "",
+            "project_id": ""
+        }
+    },
+    "app": {
+        "debug": false,
+        "log_level": "INFO"
+    }
+}
