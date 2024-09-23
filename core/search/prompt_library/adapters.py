@@ -6,11 +6,11 @@ from core.search.prompt_library.types import PromptResult, LLMType, GeneratorTyp
 
 class CohereAdapter(BasePromptAdapter):
     def __init__(self, client: cohere.Client, model: str):
+        super().__init__(LLMType.COHERE)
         if model not in LLMType.COHERE.available_models[GeneratorType.SEMANTIC_PARSING]:
             raise ValueError(f"Unsupported model: {model}")
         self.client = client
         self.model = model
-        self.llm_type = LLMType.COHERE
 
     def generate_prompt(self, query: str) -> str:
         return query
