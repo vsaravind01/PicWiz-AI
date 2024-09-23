@@ -35,29 +35,30 @@ class ClipEmbeddingTemplate(BaseSearchTemplate):
     ) -> list[dict[str, Any]]:
         clip_results = []
         rrf_scores = defaultdict(float)
-        k = 60
+        _k = 60
 
         for query in queries:
             embedding = get_clip_embedding(query)
 
             with QdrantConnection(collection=QdrantCollections.CLIP_EMBEDDINGS) as conn:
                 results = conn.search(embedding, top_k=k, threshold=0.21)
+                clip_results.append(results)
 
             for rank, result in enumerate(results, start=1):
-                rrf_scores[result["id"]] += 1 / (k + rank)
+                rrf_scores[result["id"]] += 1 / (_k + rank)
 
         sorted_results = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 
-        results = [id for id, _ in sorted_results[:5]]
-
         final_results = []
-        for id in results:
+        for id, _ in sorted_results[:5]:
             for query_results in clip_results:
                 for result in query_results:
                     if result["id"] == id:
                         final_results.append(result)
                         break
-                if len(final_results) == len(results):
+                if len(final_results) == 5:
                     break
+            if len(final_results) == 5:
+                break
 
         return final_results
