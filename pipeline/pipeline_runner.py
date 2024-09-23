@@ -1,7 +1,7 @@
 import argparse
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Any, Dict, Union
+from typing import Any, Union
 
 from db.config import Entity
 from db.mongo_connect import MongoConnection
@@ -13,20 +13,21 @@ from core.loader.image_loader import ImageLoader
 
 
 class PipelineRunner:
-    def __init__(self, task_name: str, column: str, connection_requirements: List[Entity]):
+
+    def __init__(self, task_name: str, column: str, connection_requirements: list[Entity]):
         self.task_name = task_name
         self.column = column
         self.connection_requirements = connection_requirements
         self.settings = Settings()
         self.logger = logger
 
-    def execute(self, loader: ImageLoader, **kwargs) -> Dict[str, Any]:
+    def execute(self, loader: ImageLoader, **kwargs) -> dict[str, Any]:
         raise NotImplementedError
 
     def preprocess_func(self, img):
         raise NotImplementedError
 
-    def task(self, local_file_paths: List[str], num_workers: int = 4, **kwargs):
+    def task(self, local_file_paths: list[str], num_workers: int = 4, **kwargs):
         self.logger.info(f"Running {self.task_name}")
 
         loader = ImageLoader(local_file_paths, auto_load=True)
@@ -46,8 +47,8 @@ class PipelineRunner:
 
     def update_collections(
         self,
-        task_results: Dict[str, Any],
-        connections: Dict[Entity, Union[SqlConnection, MongoConnection]],
+        task_results: dict[str, Any],
+        connections: dict[Entity, Union[SqlConnection, MongoConnection]],
     ):
         for entity, conn in connections.items():
             self.logger.info(f"Updating {entity.name} collection")
@@ -58,10 +59,10 @@ class PipelineRunner:
 
         self.logger.info("Collections updated")
 
-    def _update_sql(self, conn: SqlConnection, task_results: Dict[str, Any], entity: Entity):
+    def _update_sql(self, conn: SqlConnection, task_results: dict[str, Any], entity: Entity):
         raise NotImplementedError
 
-    def _update_mongo(self, conn: MongoConnection, task_results: Dict[str, Any], entity: Entity):
+    def _update_mongo(self, conn: MongoConnection, task_results: dict[str, Any], entity: Entity):
         raise NotImplementedError
 
     def run(self):

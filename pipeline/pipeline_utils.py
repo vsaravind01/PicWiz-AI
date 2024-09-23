@@ -2,7 +2,7 @@ import os
 import logging
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, List
+from typing import Any
 from google.cloud import storage
 import uuid
 from typing import Optional
@@ -10,7 +10,6 @@ from db import DB_CONNECTION_MAP
 from db.config import Entity
 from datastore import BaseDataStore
 from models import User, Photo
-from models.response_models import PhotoResponse
 from settings import Settings
 from types_ import DatastoreType
 
@@ -37,7 +36,7 @@ def download_batch(batch_index: int, bucket_name: str, file_paths: list[str], nu
     logger.info(f"Batch {batch_index} downloaded - {len(file_paths)} images")
 
 
-def download_images(user: User, photos: List[Photo]) -> List[str]:
+def download_images(user: User, photos: list[Photo]) -> list[str]:
     settings = Settings()
     datastore_class = settings.storage.datastore_class
     datastore_settings = settings.storage.datastore_settings
@@ -81,15 +80,10 @@ def get_user(user_id: str) -> User:
         exit(1)
 
     user = user[0]
-    return User(
-        id=user["id"],
-        name=user["name"],
-        email=user["email"],
-        password=user["password"],
-    )
+    return User(**user)
 
 
-def get_file_paths(user: User) -> List[str]:
+def get_file_paths(user: User) -> list[str]:
     settings = Settings()
     datastore_class = settings.storage.datastore_class
     datastore_settings = settings.storage.datastore_settings
@@ -99,7 +93,7 @@ def get_file_paths(user: User) -> List[str]:
 
 def get_user_photos(
     user_id: uuid.UUID, column: str, datastore: Optional[DatastoreType] = None
-) -> List[Photo]:
+) -> list[Photo]:
     settings = Settings()
     db_type = settings.db.db_type
     connection_class = DB_CONNECTION_MAP[db_type]

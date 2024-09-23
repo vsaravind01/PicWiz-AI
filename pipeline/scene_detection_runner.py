@@ -6,7 +6,7 @@ from models import Photo
 from pipeline.pipeline_runner import PipelineRunner
 from db.config import Entity
 from sqlalchemy import func, update
-from typing import Dict, Any
+from typing import Any
 
 
 class SceneDetectionRunner(PipelineRunner):
@@ -18,42 +18,43 @@ class SceneDetectionRunner(PipelineRunner):
         self.detector.detect(img, True)
         self.logger.info(f"Scenes detected for image {img.id}")
 
-    def execute(self, loader: ImageLoader, **kwargs) -> Dict[str, Any]:
+    def execute(self, loader: ImageLoader, **kwargs) -> dict[str, Any]:
         results = {}
         for img_id, img in loader.iter():
-            results[img_id] = img.scenes
+            scenes = []
+            for scene, score in img.scenes:
+                scenes.append((scene.replace("_", " ").lower(), score))
+            results[img_id] = scenes
 
         return results
 
-    def _update_sql(self, conn: SqlConnection, task_results: Dict[str, Any], entity: Entity):
+    def _update_sql(self, conn: SqlConnection, task_results: dict[str, Any], entity: Entity):
         session = conn.session
         for img_id, scenes in task_results.items():
             scs = []
             for scene, score in scenes:
-                scene = scene.replace("_", " ").lower()
                 scs.append(scene)
 
             stmt = (
                 update(Photo)
-                .where(Photo.id == img_id)
+                .where(Photo.id == img_id)  # type: ignore
                 .values(scenes=scenes)
                 .values(entities=func.array_cat(Photo.entities, scs))
                 .values(scene_processed=True)
                 .returning(Photo)
             )
 
-            result = session.exec(stmt).all()
+            result = session.exec(stmt).all()  # type: ignore
 
             if len(result) == 0:
                 self.logger.error(f"Failed to update {img_id}")
 
         session.commit()
 
-    def _update_mongo(self, conn: MongoConnection, task_results: Dict[str, Any], entity: Entity):
+    def _update_mongo(self, conn: MongoConnection, task_results: dict[str, Any], entity: Entity):
         for img_id, scenes in task_results.items():
             scs = []
             for scene, score in scenes:
-                scene = scene.replace("_", " ").lower()
                 scs.append(scene)
 
             result = conn.collection.update_one(
