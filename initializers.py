@@ -7,9 +7,13 @@ from alembic.config import Config
 from alembic import command
 from settings import Settings
 from types_ import DBType
+from db import QdrantConnection
 
 
 def init_db() -> Optional[Engine]:
+    if not QdrantConnection.health_status():
+        raise Exception("Qdrant cluster is down")
+
     settings = Settings().db
     if settings.db_type == DBType.SQL:
         db_manager = SqlDatabaseManager()
