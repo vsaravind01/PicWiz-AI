@@ -1,4 +1,3 @@
-import uuid
 import typer
 from typing import Annotated, Optional
 from pathlib import Path
