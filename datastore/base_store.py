@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from models import User
-from typing import BinaryIO, Optional, List
+from typing import BinaryIO, Optional
+
+from types_ import DatastoreType
 
 
 class BaseDataStore(ABC):
-    def __init__(self, user: User):
+    def __init__(self, user: User, datastore_type: DatastoreType):
+        self.datastore_type = datastore_type
         self.user = user
 
     @abstractmethod
@@ -14,7 +17,7 @@ class BaseDataStore(ABC):
         pass
 
     @abstractmethod
-    def download(self, file_id: str) -> tuple[Optional[bytes], Optional[str]]:
+    def download(self, file_id: str) -> tuple[Optional[bytes | str], Optional[str]]:
         pass
 
     @abstractmethod
@@ -22,7 +25,7 @@ class BaseDataStore(ABC):
         pass
 
     @abstractmethod
-    def get_file_paths(self, file_ids: List[str]) -> List[str]:
+    def get_file_paths(self, file_ids: list[str]) -> list[str]:
         pass
 
     @abstractmethod
@@ -30,7 +33,7 @@ class BaseDataStore(ABC):
         pass
 
     @abstractmethod
-    def list_files(self) -> List[str]:
+    def list_files(self) -> list[str]:
         pass
 
     def get_full_path(self, file_id: str, file_extension: str) -> str:
