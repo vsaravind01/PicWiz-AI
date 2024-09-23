@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 from db.mongo_connect import MongoConnection
 from db.config import Entity
 from models import User, UserResponse
@@ -15,8 +15,8 @@ ALGORITHM = os.environ["ALGORITHM"]
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 60 * 24
 
 
-def create_jwt_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
+def create_jwt_token(data: Any, expires_delta: Optional[timedelta] = None):
+    to_encode = {"sub": data}
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:

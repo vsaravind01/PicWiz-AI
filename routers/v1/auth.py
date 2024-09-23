@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.responses import JSONResponse
 from routers.dependencies import get_db_connection
-from db.base_db_connect import DBDuplicateKeyError
+from db.errors import DBDuplicateKeyError
 from db.config import Entity
 from models import User
 from routers.dependencies.auth_jwt import create_jwt_token
@@ -15,9 +15,8 @@ async def login(
     password: str = Body(...),
     db_conn=Depends(get_db_connection),
 ):
-    collection = Entity.USER
 
-    user = db_conn(entity=collection).find({"email": email})
+    user = db_conn(entity=Entity.USER).find({"email": email})
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
@@ -28,10 +27,17 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password"
         )
 
-    token = create_jwt_token({"sub": user["email"]})
+    token = create_jwt_token(user["email"])
 
     response = JSONResponse(content={"token": token}, status_code=status.HTTP_200_OK)
-    response.set_cookie("token", token)
+    response.set_cookie(
+        key="token",
+        value=token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=3600,
+    )
 
     return response
 

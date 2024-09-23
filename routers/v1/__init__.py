@@ -3,4 +3,5 @@ from routers.v1.person import router as person_router
 from routers.v1.auth import router as auth_router
 from routers.v1.face import router as face_router
 from routers.v1.user import router as user_router
+from routers.v1.album import router as album_router
 from routers.v1.search_routes import router as search_router

@@ -5,6 +5,7 @@ from routers.v1 import (
     face_router,
     search_router,
     user_router,
+    album_router,
 )
 from routers.dependencies.auth_jwt import verify_jwt_token
 from fastapi import APIRouter, Depends
@@ -16,7 +17,7 @@ secure_router.include_router(person_router)
 secure_router.include_router(photo_router)
 secure_router.include_router(face_router)
 secure_router.include_router(user_router)
-
+secure_router.include_router(album_router)
 
 router = APIRouter(prefix="/api/v1", tags=["api_v1"])
 router.include_router(auth_router)

@@ -9,5 +9,4 @@ def get_datastore(user: User = Depends(get_current_user)) -> BaseDataStore:
     settings = Settings()
     datastore_class = settings.storage.datastore_class
     datastore = datastore_class(user=user, **settings.storage.datastore_settings)
-    setattr(datastore, "datastore_type", settings.storage.datastore)
     return datastore
