@@ -1,12 +1,13 @@
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
 from pymongo import MongoClient
 from pymongo.database import Database
 from pymongo.errors import DuplicateKeyError
 from sqlmodel import SQLModel
 
-from db.base_db_connect import DBConnection, DBDuplicateKeyError
+from db.base_db_connect import DBConnection
+from db.errors import DBDuplicateKeyError
 from db.config import Entity, MONGO_DATABASE, MONGO_URI
 
 
@@ -93,3 +94,52 @@ class MongoConnection(DBConnection):
             else:
                 converted_query[key] = value
         return converted_query
+
+    def join_query(
+        self,
+        main_entity: Entity,
+        join_entities: list[tuple[tuple[Entity, str], tuple[Entity, str]]],
+        conditions: dict,
+        fields: Optional[dict] = None,
+        limit: int = 100,
+        page: int = 0,
+    ):
+        main_collection = main_entity.value
+        pipeline = []
+
+        if conditions:
+            pipeline.append({"$match": self._convert_uuid_in_query(conditions)})
+
+        for (join_entity, right_key), (from_entity, left_key) in join_entities:
+            join_collection = join_entity.value
+            from_collection = from_entity.value
+
+            pipeline.append(
+                {
+                    "$lookup": {
+                        "from": join_collection,
+                        "let": {"local_id": f"${left_key}"},
+                        "pipeline": [
+                            {"$match": {"$expr": {"$eq": [f"${right_key}", "$$local_id"]}}},
+                        ],
+                        "as": join_collection,
+                    }
+                }
+            )
+            pipeline.append({"$unwind": f"${join_collection}"})
+
+        if fields:
+            project_fields = {}
+            for entity, entity_fields in fields.items():
+                for field, include in entity_fields.items():
+                    if include:
+                        project_fields[f"{entity.value}.{field}"] = 1
+            if project_fields:
+                pipeline.append({"$project": project_fields})
+
+        skip = page * limit
+        pipeline.append({"$skip": skip})
+        pipeline.append({"$limit": limit})
+
+        result = list(self._db[main_collection].aggregate(pipeline))
+        return result

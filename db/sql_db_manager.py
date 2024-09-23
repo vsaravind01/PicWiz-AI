@@ -25,7 +25,7 @@ class DBError(Exception):
     pass
 
 
-class SqlDatabaseManager(metaclass=SingletonDBManager):
+class SqlDatabaseManager:
     settings = Settings().db
 
     if settings.db_type == "sql":

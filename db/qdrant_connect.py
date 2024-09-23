@@ -1,3 +1,4 @@
+from typing import Generator
 import uuid
 
 from qdrant_client import models, QdrantClient
@@ -27,6 +28,13 @@ class QdrantConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._client.close()
 
+    @staticmethod
+    def health_status() -> bool:
+        client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        result = client.http.cluster_api.cluster_status().status == "ok"
+        client.close()
+        return result
+
     def upsert(self, id: str, data: dict, embedding: list[float]) -> None:
         self._client.upsert(
             collection_name=self.collection_name,
@@ -39,10 +47,12 @@ class QdrantConnection:
             ],
         )
 
-    def search(self, embedding: list[float], top_k: int = 10) -> list[dict]:
+    def search(
+        self, embedding: list[float], top_k: int = 10, threshold: float = 0.21
+    ) -> list[dict]:
         results = self._client.search(
             collection_name=self.collection_name,
-            score_threshold=0.21,
+            score_threshold=threshold,
             query_vector=embedding,
             limit=top_k,
         )

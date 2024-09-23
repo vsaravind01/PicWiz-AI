@@ -1,7 +1,8 @@
 import os
 from enum import Enum
-
-from models import Album, Face, Person, Photo, User
+from typing import Type
+from models import Album, Face, Person, Photo, User, PhotoAlbumLink
+from sqlmodel import SQLModel
 
 
 class Entity(Enum):
@@ -10,8 +11,9 @@ class Entity(Enum):
     PHOTO = "photos"
     PERSON = "person"
     FACE = "face"
+    PHOTO_ALBUM_LINK = "photo_album_link"
 
-    def get_class(self):
+    def get_class(self) -> Type[User | Photo | Album | Person | Face | PhotoAlbumLink]:
         if self == Entity.USER:
             return User
         elif self == Entity.PHOTO:
@@ -22,6 +24,8 @@ class Entity(Enum):
             return Person
         elif self == Entity.FACE:
             return Face
+        elif self == Entity.PHOTO_ALBUM_LINK:
+            return PhotoAlbumLink
         else:
             raise ValueError("Invalid collection")
 

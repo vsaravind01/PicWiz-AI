@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional, List, Tuple, Dict
 import uuid
 from abc import ABC, abstractmethod
 
@@ -43,6 +43,18 @@ class BaseConnection(ABC):
     def delete(self, query: dict):
         pass
 
+    @abstractmethod
+    def join_query(
+        self,
+        main_entity: Entity,
+        join_entities: List[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
+        conditions: Dict,
+        fields: Optional[Dict] = None,
+        limit: int = 100,
+        page: int = 0,
+    ):
+        pass
+
 
 class DBConnection(BaseConnection):
 
@@ -85,10 +97,13 @@ class DBConnection(BaseConnection):
     def delete(self, query: dict):
         raise NotImplementedError
 
-
-class DBDuplicateKeyError(Exception):
-    pass
-
-
-class DBConnectionError(Exception):
-    pass
+    def join_query(
+        self,
+        main_entity: Entity,
+        join_entities: List[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
+        conditions: Dict,
+        fields: Optional[Dict] = None,
+        limit: int = 100,
+        page: int = 0,
+    ):
+        raise NotImplementedError
