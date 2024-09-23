@@ -16,45 +16,12 @@ ChatterChum is an end to end AI-powered photo management tool similar to Google 
 - Scene detection is based on the location of the photo and not exactly the literal scene in the photo. (Eg: A photo taken at a beach will be tagged as a beach photo, but a birthday party photo taken at a beach will still be tagged as a beach photo.)
 
 
-### Work in Progress
-- [ ] **Update Routes**: Update the routes to handle dynamic database and storage dependencies.
-    - [ ] **Photo Routes**:
-        - [ ] `GET api/v1/photos/search`
-
-    - Person Routes (Partially implemented)
-        - [ ] `GET api/v1/photos/`
-        - [ ] `POST api/v1/person/`
-        - [ ] `GET api/v1/person/search`
-        - [ ] `GET api/v1/person/{person_id}`
-        - [ ] `DELETE api/v1/person/{person_id}`
-        - [ ] `PUT api/v1/person/{person_id}`
-        - [ ] `PUT api/v1/person/{person_id}/name/{name}`
-        - [ ] `GET api/v1/person/`
-    - Face Routes (Implemented only for MongoDB)
-        - [ ] `POST api/v1/face/`
-        - [ ] `GET api/v1/face/{face_id}`
-        - [ ] `DELETE api/v1/face/{face_id}`
-        - [ ] `PUT api/v1/face/{face_id}`
-    - Album Routes (Not yet implemented)
-        - [ ] `POST api/v1/album/`
-        - [ ] `GET api/v1/album/{album_id}`
-        - [ ] `DELETE api/v1/album/{album_id}`
-        - [ ] `PUT api/v1/album/{album_id}`
-        - [ ] `GET api/v1/album/`
-
-    - Search Routes (Partially implemented)
-        - [ ] `GET api/v1/search/q/{query}`
-- [ ] **Improvised Query Processing**: Implement a more advanced query processing system to handle complex queries.
-- [ ] **Auto Trigger Events**: Automatically trigger events based on the user's query, like creating an album, etc. (Partially implemented)
-- [ ] **Smooth User Experience**: Implement a more user-friendly interface to interact with the system.
-- [ ] **Update LLM Search**: Update the LLM search class into a separate module and make it robust for advanced query strategies.
-
 ## Tech Stack
 - **Backend**: FastAPI
 - **Database**: Postgres/MongoDB + Qdrant
 - **AI Models**: Vision Transformers, Detectron, FaceNet, CLIP, Cohere(LLM), WaveMix
 - **Frontend**: ReactJS
-- **File Storage**: Google Cloud Storage
+- **File Storage**: Google Cloud Storage, Local Storage
 
 ## Architecture
 ![Architecture](./assets/chatterchum-arch.png)
@@ -81,9 +48,9 @@ python setup.py setup
    This will guide you through setting up the database, storage and application configurations interactively.
 
    Alternatively, you can set up each component separately:
-   - Database setup: python setup.py setup-db --interactive/-i
-   - Storage setup: python setup.py setup-storage --interactive/-i
-   - Application setup: python setup.py setup-app --interactive/-i
+   - Database setup: `python setup.py setup-db --interactive/-i`
+   - Storage setup: `python setup.py setup-storage --interactive/-i`
+   - Application setup: `python setup.py setup-app --interactive/-i`
 
 4. Review your settings
 ```bash
@@ -95,8 +62,9 @@ python setup.py show-settings
 export SECRET_KEY=<secret_key>
 export ALGORITHM=<algorithm>
 export COHERE_API_KEY=<API_KEY>
-
 ```
+
+> **Note**: For setting up the development environment for GCloudStore, follow the necessary steps at [here](https://cloud.google.com/docs/authentication/application-default-credentials).
 
 ## Usage
 1. Run the application
