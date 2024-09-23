@@ -51,6 +51,16 @@ async def upload_photo(
     return uploaded_photos
 
 
+@router.get("/search", response_model=list[PhotoResponse], status_code=status.HTTP_200_OK)
+async def search_photos_by_term(
+    term: str,
+    user: User = Depends(get_current_user),
+    db_conn=Depends(get_db_connection),
+):
+    handler = PhotoHandler(db_conn)
+    return await handler.search_by_terms(term, user)
+
+
 @router.get("/{photo_id}", response_model=PhotoResponse, status_code=status.HTTP_200_OK)
 async def get_photo(
     photo_id: UUID,

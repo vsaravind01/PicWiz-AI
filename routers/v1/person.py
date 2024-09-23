@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, status
 from models import Person, PersonResponse, User
 from handlers import PersonHandler
 from models.response_models import FaceResponse, PhotoResponse
@@ -26,6 +26,18 @@ async def get_persons(
 ):
     handler = PersonHandler(db_conn)
     return await handler.get_persons_by_user(current_user)
+
+
+@router.get(
+    "/search", response_model=dict[str, list[PhotoResponse]], status_code=status.HTTP_200_OK
+)
+async def search_persons_by_name(
+    name: str,
+    user: User = Depends(get_current_user),
+    db_conn=Depends(get_db_connection),
+):
+    handler = PersonHandler(db_conn)
+    return await handler.search_by_name(name, user)
 
 
 @router.get("/{person_id}", response_model=PersonResponse)
