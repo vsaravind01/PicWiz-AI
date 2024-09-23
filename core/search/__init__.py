@@ -1,1 +1,1 @@
-from .llm_search import CohereSearch
+from .llm_search import LLMSearch
