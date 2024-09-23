@@ -2,8 +2,6 @@ import os
 from enum import Enum
 from typing import Type
 from models import Album, Face, Person, Photo, User, PhotoAlbumLink
-from sqlmodel import SQLModel
-
 
 class Entity(Enum):
     USER = "users"

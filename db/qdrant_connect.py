@@ -1,4 +1,3 @@
-from typing import Generator
 import uuid
 
 from qdrant_client import models, QdrantClient

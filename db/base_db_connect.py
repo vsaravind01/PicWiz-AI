@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple, Dict
+from typing import Optional, Tuple
 import uuid
 from abc import ABC, abstractmethod
 
@@ -47,9 +47,9 @@ class BaseConnection(ABC):
     def join_query(
         self,
         main_entity: Entity,
-        join_entities: List[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
-        conditions: Dict,
-        fields: Optional[Dict] = None,
+        join_entities: list[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
+        conditions: dict,
+        fields: Optional[dict] = None,
         limit: int = 100,
         page: int = 0,
     ):
@@ -100,9 +100,9 @@ class DBConnection(BaseConnection):
     def join_query(
         self,
         main_entity: Entity,
-        join_entities: List[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
-        conditions: Dict,
-        fields: Optional[Dict] = None,
+        join_entities: list[Tuple[Tuple[Entity, str], Tuple[Entity, str]]],
+        conditions: dict,
+        fields: Optional[dict] = None,
         limit: int = 100,
         page: int = 0,
     ):
