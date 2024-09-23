@@ -33,13 +33,13 @@ class AlbumHandler(BaseHandler):
     async def get_album_photos(self, album_id: UUID, user: User) -> list[dict]:
         with self.db_conn(entity=self.entity) as conn:
             result = conn.join_query(
-                main_entity=Entity.ALBUM,
+                main_entity=Entity.PHOTO,
                 join_entities=[
-                    ((Entity.PHOTO_ALBUM_LINK, "album_id"), (Entity.ALBUM, "id")),
-                    ((Entity.PHOTO, "id"), (Entity.PHOTO_ALBUM_LINK, "photo_id")),
+                    ((Entity.PHOTO_ALBUM_LINK, "photo_id"), (Entity.PHOTO, "id")),
+                    ((Entity.ALBUM, "id"), (Entity.PHOTO_ALBUM_LINK, "album_id")),
                 ],
-                conditions={"id": album_id, "owner_id": user.id},
-                select_from=Entity.ALBUM.get_class(),
+                conditions={"album_id": album_id, "owner_id": user.id},
+                select_from=Entity.PHOTO.get_class(),
             )
         return result
 
