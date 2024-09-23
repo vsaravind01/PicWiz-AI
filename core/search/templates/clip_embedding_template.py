@@ -25,24 +25,26 @@ class ClipEmbeddingTemplate(BaseSearchTemplate):
         return {"clip_results": clip_results, "similar_queries": similar_queries}
 
     async def generate_similar_queries(self, query: str, **kwargs) -> list[str]:
-        prompt = self.similar_query_generator.generate(query)
+        prompt = self.similar_query_generator.generate(query, **kwargs)
         response = await self.adapter.execute_prompt(prompt, **kwargs)
         parsed_response = self.adapter.parse_response(response)
         return parsed_response["similar_queries"]
 
-    async def _search_clip_embeddings(self, queries: list[str], top_k: int) -> list[dict[str, Any]]:
+    async def _search_clip_embeddings(
+        self, queries: list[str], k: int, **kwargs
+    ) -> list[dict[str, Any]]:
         clip_results = []
         rrf_scores = defaultdict(float)
-        top_k = 60
+        k = 60
 
         for query in queries:
             embedding = get_clip_embedding(query)
 
             with QdrantConnection(collection=QdrantCollections.CLIP_EMBEDDINGS) as conn:
-                results = conn.search(embedding, top_k=top_k, threshold=0.21)
+                results = conn.search(embedding, top_k=k, threshold=0.21)
 
             for rank, result in enumerate(results, start=1):
-                rrf_scores[result["id"]] += 1 / (top_k + rank)
+                rrf_scores[result["id"]] += 1 / (k + rank)
 
         sorted_results = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 

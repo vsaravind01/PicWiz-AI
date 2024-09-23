@@ -64,7 +64,9 @@ class DatabaseOperations:
         for entity_type in entity_types:
             self.searchers[entity_type] = searcher
 
-    async def search_database(self, parsed_query: dict[str, Any], user: User) -> dict[str, Any]:
+    async def search_database(
+        self, parsed_query: dict[str, Any], user: User, **kwargs
+    ) -> dict[str, Any]:
         entities = parsed_query.get("entities", {"people": [], "objects": [], "locations": []})
         query = parsed_query.get("query", {})
 

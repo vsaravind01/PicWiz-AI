@@ -16,4 +16,4 @@ class SimilarQueryGenerator(BasePromptGenerator):
         super().__init__(llm_type)
 
     def generate(self, query: str, **kwargs) -> str:
-        return get_prompt(self.llm_type, PromptType.SIMILAR_QUERY, query=query)
+        return get_prompt(self.llm_type, PromptType.SIMILAR_QUERY, query=query, **kwargs)

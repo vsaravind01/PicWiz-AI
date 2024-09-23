@@ -14,5 +14,5 @@ async def search(query: str, user=Depends(get_current_user)):
     llm_search = LLMSearch(
         user=user, settings=settings, adapter_type=AdapterType.COHERE, model="command-r"
     )
-    result = await llm_search.search(query)
+    result = await llm_search.search(query, k=5)
     return result
