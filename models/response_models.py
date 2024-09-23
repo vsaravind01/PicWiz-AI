@@ -3,18 +3,17 @@ from sqlmodel import SQLModel, Field
 from pydantic import EmailStr
 from typing import Optional
 
-from models import Photo
+from models import Photo, Album, Person
 
 
 class UserResponse(SQLModel, table=False):
     id: uuid.UUID
     name: str
     email: EmailStr
-
+    person_id: Optional[uuid.UUID]
     class Config:
         from_attributes = True
         unique_fields = tuple()
-
 
 class FaceResponse(SQLModel, table=False):
     id: uuid.UUID
@@ -34,8 +33,6 @@ class PersonResponse(SQLModel, table=False):
     id: uuid.UUID
     owner_id: uuid.UUID
     name: Optional[str] = Field(default=None)
-    faces: list[str] = Field(default_factory=lambda: [])
-    photos: list[Photo] = Field(default_factory=lambda: [])
 
 
 class PhotoResponse(SQLModel, table=False):

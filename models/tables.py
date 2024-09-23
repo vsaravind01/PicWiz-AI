@@ -1,17 +1,21 @@
 import uuid
+from datetime import datetime
 from typing import Optional, Annotated
 
 from pydantic import EmailStr
+from sqlalchemy import func
 from sqlmodel import (
     SQLModel,
     Field,
-    Relationship,
     Enum,
     Column,
     Float,
     Integer,
     String,
     JSON,
+    UniqueConstraint,
+    Relationship,
+    DateTime,
 )
 from sqlalchemy.dialects import postgresql
 from passlib.context import CryptContext
@@ -27,8 +31,18 @@ class User(SQLModel, table=True):
     email: Annotated[str, EmailStr] = Field(unique=True)
     password: str = Field(nullable=False)
 
+    person_id: Optional[uuid.UUID] = Field(default=None)
+
     photos: list["Photo"] = Relationship(back_populates="owner")
     albums: list["Album"] = Relationship(back_populates="owner")
+    people: list["Person"] = Relationship(back_populates="owner")
+
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    )
 
     class Config:
         unique_fields = (
@@ -60,11 +74,15 @@ class Face(SQLModel, table=True):
     photo_id: uuid.UUID = Field(foreign_key="photo.id")
     person_id: Optional[uuid.UUID] = Field(default=None, foreign_key="person.id")
 
-    person: Optional["Person"] = Relationship(back_populates="faces")
     photo: "Photo" = Relationship(back_populates="faces")
+    person: Optional["Person"] = Relationship(back_populates="faces")
 
-    def __hash__(self):
-        return hash(self.id)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    )
 
     class Config:
         unique_fields = ("id",)
@@ -78,11 +96,15 @@ class Person(SQLModel, table=True):
 
     owner_id: uuid.UUID = Field(nullable=False, foreign_key="user.id")
 
-    photos: list["Photo"] = Relationship(back_populates="people", link_model=Face)
     faces: list[Face] = Relationship(back_populates="person")
+    owner: User = Relationship(back_populates="people")
 
-    def __hash__(self):
-        return hash(self.id)
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    )
 
     class Config:
         unique_fields = ("id",)
@@ -109,28 +131,42 @@ class Photo(SQLModel, table=True):
     owner_id: uuid.UUID = Field(nullable=False, foreign_key="user.id")
 
     owner: User = Relationship(back_populates="photos")
-    people: list[Person] = Relationship(back_populates="photos", link_model=Face)
     faces: list[Face] = Relationship(back_populates="photo")
-    albums: list["Album"] = Relationship(
-        back_populates="photos", link_model=PhotoAlbumLink
+    albums: list["Album"] = Relationship(back_populates="photos", link_model=PhotoAlbumLink)
+
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
+    )
+
+    def __hash__(self):
+        return hash(self.id)
 
     class Config:
         unique_fields = ("id", "uri")
 
 
 class Album(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("name", "owner_id", name="uq_name_owner_id"),)
+
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(nullable=False)
-    description: str = Field(default=None)
+    description: Optional[str] = Field(default=None)
 
-    cover: Optional[str] = Field(default=None)
+    cover: Optional[uuid.UUID] = Field(default=None)
     ai_generated: bool = Field(default=False)
 
     owner_id: uuid.UUID = Field(nullable=False, foreign_key="user.id")
     owner: User = Relationship(back_populates="albums")
-    photos: list[Photo] = Relationship(
-        back_populates="albums", link_model=PhotoAlbumLink
+    photos: list[Photo] = Relationship(back_populates="albums", link_model=PhotoAlbumLink)
+
+    created_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    )
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime(timezone=True), onupdate=func.now(), nullable=False)
     )
 
     class Config:
