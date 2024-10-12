@@ -1,7 +1,7 @@
-ChatterChum
-===========
+PicWiz AI
+=========
 
-ChatterChum is an end to end AI-powered photo management tool similar to Google Photos from scratch which is capable of automatically tagging photos based on objects, recognize familiar faces, and also generate an album based on a user requirement.
+PicWiz AI is an end to end AI-powered photo management tool similar to Google Photos from scratch which is capable of automatically tagging photos based on objects, recognize familiar faces, and also generate an album based on a user requirement.
 
 ## Features
 - [x] **Entity Detection**: Automatically tag photos based on people, objects, and places.
@@ -33,7 +33,7 @@ ChatterChum is an end to end AI-powered photo management tool similar to Google 
 ## Setup
 1. Clone the repository
 ```bash
-git clone https://github.com/vsaravind01/ChatterChum.git
+git clone https://github.com/vsaravind01/PicWiz-AI.git
 ```
 2. Install the dependencies
 ```bash
