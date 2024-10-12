@@ -1,0 +1,2 @@
+class DBDuplicateKeyError(Exception):
+    pass

@@ -11,7 +11,11 @@ from core.extract.face import FaceExtractor
 
 class BaseEmbedder(ABC):
     @abstractmethod
-    def embed(self, image: ImageData, with_return: bool = False):
+    def get_embedding(self, img):
+        raise NotImplementedError
+
+    @abstractmethod
+    def extract_and_embed(self, image_data: ImageData, with_return: bool = False):
         raise NotImplementedError
 
 
@@ -29,7 +33,7 @@ class FaceEmbedder(BaseEmbedder):
 
         return torch.tensor(embedding).unsqueeze(0).numpy()
 
-    def embed(self, image_data: ImageData, with_return: bool = False):
+    def extract_and_embed(self, image_data: ImageData, with_return: bool = False):
         for face, key in self.extractor.extract(image_data, with_key=True):
             embedding = self.get_embedding(face)
             image_data.set_face_embedding(key, embedding)

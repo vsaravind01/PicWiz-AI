@@ -1,3 +1,7 @@
+"""This file contains the album mapping description -> album name.
+Can be used to generate albums by finding similar albums using clip embeddings similarity.
+"""
+
 album_mapping = {
     # Background Spots
     "background is a forest": "In the Heart of Nature",

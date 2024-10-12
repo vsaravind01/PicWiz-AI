@@ -1,26 +1,29 @@
 import os
 from enum import Enum
-from models import User, Photo, Album, Face, Person
+from typing import Type
+from models import Album, Face, Person, Photo, User, PhotoAlbumLink
 
-
-class MongoCollections(Enum):
+class Entity(Enum):
     USER = "users"
     ALBUM = "albums"
     PHOTO = "photos"
     PERSON = "person"
     FACE = "face"
+    PHOTO_ALBUM_LINK = "photo_album_link"
 
-    def get_class(self):
-        if self == MongoCollections.USER:
+    def get_class(self) -> Type[User | Photo | Album | Person | Face | PhotoAlbumLink]:
+        if self == Entity.USER:
             return User
-        elif self == MongoCollections.PHOTO:
+        elif self == Entity.PHOTO:
             return Photo
-        elif self == MongoCollections.ALBUM:
+        elif self == Entity.ALBUM:
             return Album
-        elif self == MongoCollections.PERSON:
+        elif self == Entity.PERSON:
             return Person
-        elif self == MongoCollections.FACE:
+        elif self == Entity.FACE:
             return Face
+        elif self == Entity.PHOTO_ALBUM_LINK:
+            return PhotoAlbumLink
         else:
             raise ValueError("Invalid collection")
 
@@ -36,3 +39,13 @@ class QdrantCollections(Enum):
 
 QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
 QDRANT_PORT = int(os.getenv("QDRANT_PORT", 6333))
+
+
+SQL_DB_NAME = os.getenv("DATABASE_NAME", "chatterchum")
+SQL_URI_MAP = {
+    "sqlite": os.getenv("DATABASE_URL", f"sqlite:///./{SQL_DB_NAME}.db"),
+    "postgres": os.getenv(
+        "DATABASE_URL",
+        f"postgresql+psycopg2://vsaravind:pass@localhost/{SQL_DB_NAME}",
+    ),
+}

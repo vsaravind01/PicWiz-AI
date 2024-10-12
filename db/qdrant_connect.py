@@ -1,7 +1,8 @@
-from typing import Any
-from qdrant_client import QdrantClient, models
+import uuid
 
-from db.config import QDRANT_PORT, QDRANT_HOST, QdrantCollections
+from qdrant_client import models, QdrantClient
+
+from db.config import QDRANT_HOST, QDRANT_PORT, QdrantCollections
 
 
 class QdrantConnection:
@@ -26,6 +27,13 @@ class QdrantConnection:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._client.close()
 
+    @staticmethod
+    def health_status() -> bool:
+        client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+        result = client.http.cluster_api.cluster_status().status == "ok"
+        client.close()
+        return result
+
     def upsert(self, id: str, data: dict, embedding: list[float]) -> None:
         self._client.upsert(
             collection_name=self.collection_name,
@@ -38,10 +46,12 @@ class QdrantConnection:
             ],
         )
 
-    def search(self, embedding: list[float], top_k: int = 10) -> list[dict]:
+    def search(
+        self, embedding: list[float], top_k: int = 10, threshold: float = 0.21
+    ) -> list[dict]:
         results = self._client.search(
             collection_name=self.collection_name,
-            score_threshold=0.21,
+            score_threshold=threshold,
             query_vector=embedding,
             limit=top_k,
         )
@@ -53,12 +63,14 @@ class QdrantConnection:
                 response.append(payload)
         return response
 
-    def upsert_many(self, ids: list[str], data: list[dict], embeddings: list[list[float]]) -> None:
+    def upsert_many(
+        self, ids: list[uuid.UUID], data: list[dict], embeddings: list[list[float]]
+    ) -> None:
         self._client.upsert(
             collection_name=self.collection_name,
             points=[
                 models.PointStruct(
-                    id=id,
+                    id=str(id),
                     payload=payload,
                     vector=embedding,
                 )

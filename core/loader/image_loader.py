@@ -1,21 +1,23 @@
 from uuid import uuid4
 
 import os
+import uuid
 from PIL import Image, ExifTags
 from typing import Generator
-from core.types import ImageData
+from core.types import EmbeddingData, ImageData
 
 
 class ImageLoader:
-    def __init__(self, images: str, auto_load: bool = False):
+
+    def __init__(self, images: str | list[str], auto_load: bool = False):
         if isinstance(images, str):
             if os.path.isdir(images):
                 for root, _, files in os.walk(images):
                     self.images = [os.path.join(root, file) for file in files]
         else:
             self.images = images
-        self.image_data: dict[str, ImageData] = {}
-        self.faces = {}
+        self.image_data: dict[uuid.UUID, ImageData] = {}
+        self.faces: dict[tuple[uuid.UUID, str], EmbeddingData] = {}
         self._is_faces_detected = False
 
         if auto_load:
@@ -38,13 +40,13 @@ class ImageLoader:
             for face_key, face in img.faces.items():
                 self.faces[(img.id, face_key)] = face
 
-    def get_face(self, img_id: str, face_key: str):
+    def get_face(self, img_id: uuid.UUID, face_key: str):
         return self.faces[(img_id, face_key)]
 
-    def get_faces(self, img_id: str):
+    def get_faces(self, img_id: uuid.UUID):
         return self.image_data[img_id].faces
 
-    def iter(self) -> Generator[tuple[str, ImageData], None, None]:
+    def iter(self) -> Generator[tuple[uuid.UUID, ImageData], None, None]:
         for key, img in self.image_data.items():
             yield key, img
 
@@ -64,7 +66,6 @@ class ImageLoader:
                 self.image_data[key].image = self._open_image(img.image)
                 return
 
-        self.image_data = {}
         for img in self.images:
             _img = self._open_image(img)
             exif = {ExifTags.TAGS[k]: v for k, v in _img.getexif().items() if k in ExifTags.TAGS}
@@ -77,8 +78,8 @@ class ImageLoader:
 
             id = img.split("/")[-1].split(".")[0]
 
-            self.image_data[id] = ImageData(
-                id=id,
+            self.image_data[uuid.UUID(id)] = ImageData(
+                id=uuid.UUID(id),
                 image=_img,
                 meta=metadata,
             )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import sys
+import uuid
 
 from typing_extensions import Annotated
 from typing import Any, Generic, Optional, Sequence, TypeVar
@@ -15,7 +16,7 @@ BoxType = tuple[float, float, float, float] | tuple[int, int, int, int] | Sequen
 
 
 class ImageData(BaseModel):
-    id: str
+    id: uuid.UUID
     image: Any
     meta: dict = dict()
 
@@ -58,7 +59,7 @@ class ImageData(BaseModel):
 
 
 class EmbeddingData(BaseModel):
-    id: str
+    id: uuid.UUID
     embedding: Any
     meta: dict = dict()
 
